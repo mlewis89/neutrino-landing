@@ -5,18 +5,63 @@ Template — reusable for future clients.
 
 ---
 
+## Deployment Status
+
+| Component | Status | Detail |
+|-----------|--------|--------|
+| GitHub repo | ✅ DONE | [github.com/mlewis89/neutrino-landing](https://github.com/mlewis89/neutrino-landing) |
+| GitHub Pages | ✅ DONE (building) | https://mlewis89.github.io/neutrino-landing |
+| CNAME (for custom domain) | ✅ DONE | `neutrino.au` — one DNS update away |
+| Formspree email capture | ⚠️ NEEDED | Founder must complete — see below |
+| neutrino.au DNS | ⚠️ NEEDED | Founder must complete — see below |
+
+---
+
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `index.html` | Landing page (self-contained HTML + inline CSS + inline JS) |
+| `CNAME` | Custom domain config for GitHub Pages |
 | `README.md` | This setup and deployment guide |
 
 ---
 
-## Setup Checklist (Before Going Live)
+## Outstanding Actions (Founder)
 
-### 1. Email Capture — Formspree
+### Action 1 — Formspree email capture (15 minutes)
+
+The form in `index.html` currently has `REPLACE_WITH_YOUR_FORM_ID` as a placeholder.
+
+Steps:
+1. Go to [formspree.io](https://formspree.io) and sign up (free, no credit card)
+2. Create a new form — name it `neutrino-early-access`
+3. Copy the form endpoint (looks like `https://formspree.io/f/xxxxxxxx`)
+4. Reply to the CTO Paperclip task with the form ID (the `xxxxxxxx` part)
+
+The CTO will then update `index.html` and push the update to GitHub automatically.
+
+**Account to register with:** Use mlewis89@gmail.com or any email you control.  
+**Submissions will be sent to:** Whichever email you register with.
+
+### Action 2 — neutrino.au DNS (10 minutes)
+
+Once you're ready to go live (after founder approval):
+
+Add these DNS records at your domain registrar:
+- `A` record: `neutrino.au` → `185.199.108.153`
+- `A` record: `neutrino.au` → `185.199.109.153`
+- `A` record: `neutrino.au` → `185.199.110.153`
+- `A` record: `neutrino.au` → `185.199.111.153`
+- `CNAME` record: `www.neutrino.au` → `mlewis89.github.io`
+
+GitHub Pages HTTPS will activate automatically within ~24h of DNS propagation.
+
+---
+
+## Setup Checklist (Technical Reference)
+
+### Email Capture — Formspree
 
 **Why Formspree:** Free tier (50 submissions/month), no backend required, works from static HTML.  
 Free tier is sufficient for early access volume.
@@ -32,12 +77,9 @@ Steps:
    with the actual endpoint.
 5. Submissions will appear in the Formspree dashboard and forward to the registered email.
 
-**Alternative — Mailchimp:**
-If the founder has a Mailchimp account, embed an embedded form from the Mailchimp audience dashboard instead. Replace the `<form>` elements with the Mailchimp embed code. Contact Paperclip CTO for implementation.
-
 ---
 
-### 2. UTM Tracking
+### UTM Tracking
 
 UTM parameters are auto-captured from the URL and included in every form submission.
 
@@ -57,37 +99,29 @@ All UTM values appear as columns in the Formspree submission export.
 
 ---
 
-### 3. Hosting — GitHub Pages (Recommended, Free)
+### Hosting — GitHub Pages
 
-**Why GitHub Pages:** Free, fast, HTTPS, custom domain support.
+**Repo:** https://github.com/mlewis89/neutrino-landing  
+**Pages URL:** https://mlewis89.github.io/neutrino-landing (usable for testing)  
+**Custom domain:** `neutrino.au` (CNAME file already in repo — DNS update needed from founder)
 
-Steps:
-1. Create a GitHub repository (public or private — Pages works on both).
-2. Push `index.html` to the repo root (or `/docs` folder).
-3. In GitHub repo → Settings → Pages:
-   - Source: `Deploy from a branch`
-   - Branch: `main` (or `master`), folder: `/root` (or `/docs`)
-4. GitHub generates a URL: `https://yourusername.github.io/repo-name`
-5. To use `neutrino.au` as the custom domain:
-   - Add a `CNAME` file to the repo root containing `neutrino.au`
-   - Update DNS at your domain registrar: add a `CNAME` record pointing `www` → `yourusername.github.io`
-   - For apex domain (`neutrino.au`): add `A` records pointing to GitHub Pages IPs (see GitHub docs)
-   - Enable "Enforce HTTPS" in Pages settings
+To push updates:
+```bash
+cd product/code/landing-page
+git add -A && git commit -m "Update landing page" && git push
+```
 
-**Alternative — Vercel (Also Free):**
-1. Import repo into [vercel.com](https://vercel.com) (free tier, no credit card needed for static sites).
-2. Deploy in ~60 seconds.
-3. Add custom domain in Vercel dashboard and update DNS.
+GitHub Pages will redeploy within ~60 seconds of a push.
 
 ---
 
-## Credentials Needed from Founder
+## Credentials
 
 | Credential | Purpose | Status |
 |------------|---------|--------|
-| Formspree account (or email to register one) | Email capture | **NEEDED** |
-| GitHub account (or permission to create one) | Hosting | **NEEDED** |
-| neutrino.au DNS access | Custom domain | **NEEDED** |
+| Formspree form ID | Email capture | **NEEDED** — founder to sign up and provide |
+| neutrino.au DNS access | Custom domain | **NEEDED** — founder to update when ready to go live |
+| GitHub account (mlewis89) | Hosting | ✅ Configured |
 
 ---
 
