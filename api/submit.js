@@ -1,6 +1,7 @@
 // Vercel serverless function — email capture form handler
 // Appends lead data to a Google Sheet via Google Sheets API (service account auth)
 // Optionally adds contact to Brevo for automated nurture sequence
+// Optionally sends a confirmation email via Gmail SMTP
 //
 // Required environment variables (set in Vercel project settings):
 //   GOOGLE_CLIENT_EMAIL  — service account email
@@ -11,9 +12,41 @@
 //   BREVO_API_KEY        — Brevo API key (from Settings > API Keys in Brevo)
 //   BREVO_LIST_ID        — Brevo list ID for neutrino-early-access (integer)
 //                          If either is missing, Brevo step is silently skipped.
+//
+// Optional environment variables (Gmail SMTP confirmation):
+//   GMAIL_APP_PASSWORD   — Gmail app password for getmarketingai@gmail.com
+//                          If missing, confirmation email is silently skipped.
 
 const { google } = require('googleapis');
 const https = require('https');
+const nodemailer = require('nodemailer');
+
+// Send confirmation email via Gmail SMTP — fire-and-forget, never throws
+async function sendConfirmation(toEmail, gmailAppPassword) {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // STARTTLS
+      auth: {
+        user: 'getmarketingai@gmail.com',
+        pass: gmailAppPassword,
+      },
+    });
+
+    await transporter.sendMail({
+      from: '"MarketingAI" <getmarketingai@gmail.com>',
+      to: toEmail,
+      subject: "You're on the list",
+      text: "Thanks for signing up. We'll be in touch when we're ready for early access.\n\n— The Neutrino team",
+      html: "<p>Thanks for signing up. We'll be in touch when we're ready for early access.</p><p>— The Neutrino team</p>",
+    });
+
+    console.log('Confirmation email sent to:', toEmail);
+  } catch (err) {
+    console.warn('Confirmation email failed:', err.message);
+  }
+}
 
 // Add contact to Brevo list — fire-and-forget, never throws
 async function addToBrevo(email, brevoApiKey, brevoListId) {
@@ -115,11 +148,12 @@ module.exports = async function handler(req, res) {
 
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // Run Google Sheets write + Brevo add in parallel.
+    // Run Google Sheets write + Brevo add + confirmation email in parallel.
     // Google Sheets is the source of truth — its failure returns a 500.
-    // Brevo is optional — its failure is logged but never blocks the response.
+    // Brevo and Gmail confirmation are optional — failures are logged but never block the response.
     const brevoApiKey = process.env.BREVO_API_KEY;
     const brevoListId = process.env.BREVO_LIST_ID;
+    const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
 
     const sheetsWrite = sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
@@ -133,7 +167,11 @@ module.exports = async function handler(req, res) {
       ? addToBrevo(email, brevoApiKey, brevoListId)
       : Promise.resolve();
 
-    await Promise.all([sheetsWrite, brevoAdd]);
+    const confirmEmail = gmailAppPassword
+      ? sendConfirmation(email, gmailAppPassword)
+      : Promise.resolve();
+
+    await Promise.all([sheetsWrite, brevoAdd, confirmEmail]);
 
     return res.status(200).json({ ok: true });
   } catch (err) {
