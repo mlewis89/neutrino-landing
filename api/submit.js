@@ -1,12 +1,63 @@
 // Vercel serverless function — email capture form handler
 // Appends lead data to a Google Sheet via Google Sheets API (service account auth)
+// Optionally adds contact to Brevo for automated nurture sequence
 //
 // Required environment variables (set in Vercel project settings):
 //   GOOGLE_CLIENT_EMAIL  — service account email
 //   GOOGLE_PRIVATE_KEY   — service account private key (with literal \n)
 //   GOOGLE_SHEET_ID      — spreadsheet ID from the Google Sheet URL
+//
+// Optional environment variables (Brevo email automation):
+//   BREVO_API_KEY        — Brevo API key (from Settings > API Keys in Brevo)
+//   BREVO_LIST_ID        — Brevo list ID for neutrino-early-access (integer)
+//                          If either is missing, Brevo step is silently skipped.
 
 const { google } = require('googleapis');
+const https = require('https');
+
+// Add contact to Brevo list — fire-and-forget, never throws
+async function addToBrevo(email, brevoApiKey, brevoListId) {
+  return new Promise((resolve) => {
+    const payload = JSON.stringify({
+      email,
+      listIds: [parseInt(brevoListId, 10)],
+      updateEnabled: true,
+    });
+
+    const options = {
+      hostname: 'api.brevo.com',
+      path: '/v3/contacts',
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': brevoApiKey,
+        'content-length': Buffer.byteLength(payload),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log('Brevo contact added:', email);
+        } else {
+          console.warn('Brevo add failed:', res.statusCode, data);
+        }
+        resolve();
+      });
+    });
+
+    req.on('error', (err) => {
+      console.warn('Brevo request error:', err.message);
+      resolve();
+    });
+
+    req.write(payload);
+    req.end();
+  });
+}
 
 module.exports = async function handler(req, res) {
   // CORS — allow same-origin + any neutrino.au subdomain
@@ -41,6 +92,18 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error.' });
   }
 
+  // Row: timestamp, email, UTM fields, form location
+  const row = [
+    new Date().toISOString(),
+    email,
+    body.utm_source    || '',
+    body.utm_medium    || '',
+    body.utm_campaign  || '',
+    body.utm_content   || '',
+    body.utm_term      || '',
+    body.form_location || '',
+  ];
+
   try {
     const auth = new google.auth.GoogleAuth({
       credentials: {
@@ -52,25 +115,25 @@ module.exports = async function handler(req, res) {
 
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // Row: timestamp, email, UTM fields, form location
-    const row = [
-      new Date().toISOString(),
-      email,
-      body.utm_source    || '',
-      body.utm_medium    || '',
-      body.utm_campaign  || '',
-      body.utm_content   || '',
-      body.utm_term      || '',
-      body.form_location || '',
-    ];
+    // Run Google Sheets write + Brevo add in parallel.
+    // Google Sheets is the source of truth — its failure returns a 500.
+    // Brevo is optional — its failure is logged but never blocks the response.
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    const brevoListId = process.env.BREVO_LIST_ID;
 
-    await sheets.spreadsheets.values.append({
+    const sheetsWrite = sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: 'Leads!A:H',   // Append to "Leads" sheet, columns A–H
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [row] },
     });
+
+    const brevoAdd = (brevoApiKey && brevoListId)
+      ? addToBrevo(email, brevoApiKey, brevoListId)
+      : Promise.resolve();
+
+    await Promise.all([sheetsWrite, brevoAdd]);
 
     return res.status(200).json({ ok: true });
   } catch (err) {
