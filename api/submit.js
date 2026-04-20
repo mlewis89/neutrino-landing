@@ -38,8 +38,8 @@ async function sendConfirmation(toEmail, gmailAppPassword) {
       from: '"MarketingAI" <getmarketingai@gmail.com>',
       to: toEmail,
       subject: "You're on the list",
-      text: "Thanks for signing up. We'll be in touch when we're ready for early access.\n\n— The Neutrino team",
-      html: "<p>Thanks for signing up. We'll be in touch when we're ready for early access.</p><p>— The Neutrino team</p>",
+      text: "Thanks for signing up. We'll be in touch soon.\n\n— The MarketingAI team",
+      html: "<p>Thanks for signing up. We'll be in touch soon.</p><p>— The MarketingAI team</p>",
     });
 
     console.log('Confirmation email sent to:', toEmail);
