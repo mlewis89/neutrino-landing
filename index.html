@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -353,6 +353,32 @@
         font-size: 1.8rem;
       }
     }
+    /* -- STRIPE BUTTON -- */
+    .btn-stripe {
+      display: inline-block;
+      padding: 13px 24px;
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+      margin-top: 12px;
+    }
+    .btn-stripe:hover {
+      background: var(--accent);
+      color: var(--white);
+    }
+    .cta-repeat .btn-stripe {
+      border-color: rgba(255,255,255,0.5);
+      color: var(--white);
+    }
+    .cta-repeat .btn-stripe:hover {
+      background: rgba(255,255,255,0.15);
+    }
   </style>
 </head>
 <body>
@@ -404,6 +430,7 @@
       ✓ You're on the list. We'll be in touch.
     </div>
     <p class="form-note">No spam. Unsubscribe anytime. Australia only.</p>
+    <a href="https://buy.stripe.com/cNi8wR0wZd8lePh01cbsc00" class="btn-stripe" target="_blank" rel="noopener">Pay now &mdash; $149 AUD</a>
   </section>
 
   <!-- HOW IT WORKS -->
@@ -487,6 +514,7 @@
     <div id="success-cta" style="display:none; background:#1a3a22; border:1.5px solid #4caf50; color:#a5d6a7; border-radius:8px; padding:12px 20px; font-size:0.95rem; font-weight:600; max-width:480px; width:100%; margin:16px auto 0;">
       ✓ You're on the list. We'll be in touch.
     </div>
+    <a href="https://buy.stripe.com/cNi8wR0wZd8lePh01cbsc00" class="btn-stripe" target="_blank" rel="noopener" style="margin-top:24px;">Pay now &mdash; $149 AUD</a>
   </section>
 
   <!-- FOOTER -->
